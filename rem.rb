@@ -107,12 +107,12 @@ module Remmable
     end
     
     #use this to include Remmable in String for a given scope
-    module RemString
-        refine String do
-            include Remmable
-        end
+
+    refine String do
+        include Remmable
     end
-    
+
+
 end
 
 

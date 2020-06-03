@@ -8,7 +8,7 @@ load 'rem.rb'
 #   - formatted to be easily converted to a JSON using the to_json method from the JSON gem
 #attr_readers available for all instance vairables of the modulule singleton
 module NSD
-    using Remmable::RemString
+    using Remmable
     
     #matches an item, upto the next item or the end of the string (multiline)
     #groups the header data
