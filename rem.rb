@@ -12,8 +12,13 @@
 #remd: the last rem that has been retreived
 module Remmable
     #Strings within the scope of the Remmable module should be themselves remmable
-    #especially important if self was made Remmable by using the Remmable::RemString module
+    #especially important if self was made Remmable by 'using' the Remmable module in its source scope, i.e. outside the scope of this module
+    #(see at the bottom; there is another refinement of String to include Remmable, this time in the body proper)
+    #(this one is wrapped in an anonomous module, so that the next one is a new refinement instance, and Remmable is included in string after all its methods are defined.) 
     #without this, you could not call Remmable mothods on self within this module...
+    #(frankly I'm not sure why the first refinement works inside the module but not outside...  I discovered this by accident...
+    #(I need to do more research...  lets add a todo)
+    #TODO see above
     using (
         Module.new do
             refine String do
@@ -106,8 +111,7 @@ module Remmable
         self
     end
     
-    #use this to include Remmable in String for a given scope
-
+    #add 'using Remmable' to include Remmable in String for a given scope
     refine String do
         include Remmable
     end
