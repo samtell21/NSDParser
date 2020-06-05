@@ -1,20 +1,16 @@
 #Welcome to rem.rb
 #Author: Sam Tell (stell@samtell.com) - 6/2/2020
-#rem stands for "remove and remember"
-#use to parse through a string
-#make matches (rems) of any regexp-like object, and store the matches within the the string instance for later retreival/manipulation
+#rem is short for "remembered but not removed"
+#parse through a string
+#make matches (rems) of any regexp-like object, and store the matches within the the string instance for later retreival/manipulation, while preserving the string
+#avoid cluttering your local environment with variables to hold all the matches
 #also stored within the instance is a substring of self after removal of all matches up to that point
 
-#TERMS:
-#rem: a string that has been or will be retreived from 'remsult' and stored into the rems array.  say: "I retreive a rem of a regexp from the remsult of the self string" 
-#or "I add a rem of a regexp to the rems array of the self string"
-#remsult: the working substring from which rems are retrived; initializes to self
-#remd: the last rem that has been retreived
 module Remmable
     #Strings within the scope of the Remmable module should be themselves remmable
     #especially important if self was made Remmable by 'using' the Remmable module in its source scope, i.e. outside the scope of this module
-    #(see at the bottom; there is another refinement of String to include Remmable, this time in the body proper)
-    #(this one is wrapped in an anonomous module, so that the next one is a new refinement instance, and Remmable is included in string after all its methods are defined.) 
+    #(see at the bottom; there is another refinement of String to include Remmable, this time in the module body proper)
+    #(the first refinement is wrapped in an anonomous module, so that the next one is a new refinement instance, and Remmable is included in string after all its methods are defined.) 
     #without this, you could not call Remmable mothods on self within this module...
     #(frankly I'm not sure why the first refinement works inside the module but not outside...  I discovered this by accident...
     #(I need to do more research...  lets add a todo)
@@ -28,7 +24,6 @@ module Remmable
     )
     
     #extends self with the Remmable module
-    #use if self was made remmable by using the Remmable::RemString module and you want to pass it outside the using scope but still maintain its remmability
     def remextend
         self.extend(Remmable)
     end
@@ -39,17 +34,20 @@ module Remmable
         @rems ||= []
     end
     
-    #doesnt work!
     #ignore for now, it's a work in progress
-    #will be used along with remset
     def rems_history
         raise "rems_history isn't ready yet"
         @remd_history_full ? @remd_history_full[-1] = rems : [rems]
     end
     
-    #string from which rems are remtrieved and removed
+    #self with all rems removed
     def remsult
         @remsult ||= self
+    end
+    
+    #TODO comment
+    def rar
+        @rar ||= [self]
     end
     
     #returns last retrieved rem
@@ -57,24 +55,31 @@ module Remmable
         rems[-1]
     end
     
+    module RemErrors
+        class NoMatchError < RuntimeError
+        end
+    end
+    
     #retreive a new rem from remsult and add it the rems array
-    #throw: determines functionality in the case that there is no match
+    #throws: determines functionality in the case that there is no match
     # true: raise an exception
-    # false: adds nil as the new rem; remsult is unchanged
-    #TODO better exception handling: maybe replace with some sort of if..else
+    # false: adds nil as the new rem; rar and remsult are unchanged
     #ext: extend self with the Remmable module?
     def getrem(r, throws: false, ext: false)
+        
         remextend if ext
+        
         r = Regexp.new(r)
-        r.match(remsult)
-        begin
-            @remsult = $`+$' #` <-- #repl messes up the highlighting w/o this...
-        rescue NoMethodError=>e
-            raise 'no match' if throws
-        end
+        
+        rar.each{|e| r.match(e) ? (@rar[@rar.index(e)]=[$`,$']) && break : next}
+        @rar.flatten!
+        @remsult = rar.join
+        (throw :nomatch if throws) unless $~
         rems << $~
         self
     end
+        
+    
     
     alias retrieverem getrem
     alias addrem getrem
@@ -84,22 +89,85 @@ module Remmable
         getrem(r, throws: throws, ext: ext)
     end
     
-    #add a curried remgetter
+    #get the nth available rem of a regex-like obj
+    #like an array, 0 is the first
+    #count back from zero to start at the end, e.g. -1 will be the last
+    def nthrem r, n, throws = false, ext=false
+        remextend if ext
+        #this whole thing is a total bust with a poorly optimized 'r'...
+        l = clone.reset_rems.remall(r).rems.length
+        n = l+n if n<0
+        n = l if n<0
+        r = Regexp.new(r)
+        i = -1
+        catch :match do
+            rar.each do |e| 
+                j = -1
+                #whats going on with this regex??  basically heres whats happening:
+                #
+                #1. the first match grouping is everything that comes before our real match.  You can't use quantifiers in a lookbehind, so I had to do it with groupings
+                #       it starts with a non-greedy .*? that matches right up to our first 'r' match
+                #       it then matches 'r', followed by the next .*? to the next 'r'.  it will do this one 'j' times
+                #       'j' being the count of how many times we've looped over this particular 'rar' entry.  So first time through will be 0
+                #2. this is our match.
+                #3. (.*) for the rest of the string
+                #
+                #so the 2 grouping is our match for this iteration, but it's only our final match if we've had 'n' matches before it
+                #'i' keeps track of total matches, including those made on previous 'rar' entries, 
+                #so if 'i' checks out against 'n', we are free to pull the rem and throw ourselves out of this mess
+                #
+                #frankly, I'm not sure about regex optimization...  TODO study regexs
+                #also I'm sure there are bugs.  This would be a good opportunity to practice designing tests
+                while /(.*?(?:#{r}.*?){#{j+=1}})(#{r})(.*)/i.match(e)
+                    if (i+=1) == n
+                        @rar[@rar.index(e)]=[$1,$3]
+                        throw(:match) 
+                    end
+                end
+            end
+        end #if l>0
+        @rar.flatten!
+        @remsult = rar.join
+        (throw :nomatch if throws) unless $~
+        
+        rems << $2
+        self
+    end
+        
+        
+    def clone
+        super.new_rar.new_rems
+    end
+    
+    
+    #add a remgetter
     #takes a symbol 'name' and a regexp-like object 'r'
     #adds a new method called 'name' to the Remmable module that retreives the rem of 'r'
     #will be available to all Remmable objects
     def remgetter name, r
-        Remmable.define_method(name){rem(r)}
+        Remmable.define_method(name){getrem(r)}
         self
     end
     
     #retrieves all available rems of a regexp-like object
-    #TODO expand the exception handling so it doesn't hide unexpected exceptions, or replace with an "brake if <...>" statement, or maybe a while loop
     #TODO ext 
-    def remall r
-        loop{rem(r, throws: true) rescue break}
+    def getallrems r
+        catch :nomatch do
+            loop{getrem(r, throws: true)}
+        end
+        
         self
     end
+    
+    #basically an alias of getallrems, but will extend self w/ the Remmable module
+    def remall r
+        catch :nomatch do
+            loop{rem(r, throws: true)}
+        end
+        
+        self
+    end
+    
     
     #ignore; work in progress
     def remset
@@ -114,6 +182,20 @@ module Remmable
     #add 'using Remmable' to include Remmable in String for a given scope
     refine String do
         include Remmable
+    end
+    
+   # protected
+    def reset_rems
+        @rems = []
+        self
+    end
+    def new_rar
+        @rar = @rar.clone
+        self
+    end
+    def new_rems
+        @rems = @rems.clone
+        self
     end
 
 
