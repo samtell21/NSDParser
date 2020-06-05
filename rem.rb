@@ -34,10 +34,9 @@ module Remmable
         @rems ||= []
     end
     
-    #ignore for now, it's a work in progress
-    def rems_history
-        raise "rems_history isn't ready yet"
-        @remd_history_full ? @remd_history_full[-1] = rems : [rems]
+    #TODO comment
+    def rem_history
+        @rem_history ||= []
     end
     
     #self with all rems removed
@@ -53,6 +52,10 @@ module Remmable
     #returns last retrieved rem
     def remd
         rems[-1]
+    end
+
+    def remmers
+        @remmers ||= []
     end
     
     module RemErrors
@@ -70,6 +73,7 @@ module Remmable
         remextend if ext
         
         r = Regexp.new(r)
+        remmers << r
         
         rar.each{|e| r.match(e) ? (@rar[@rar.index(e)]=[$`,$']) && break : next}
         @rar.flatten!
@@ -88,6 +92,8 @@ module Remmable
     def rem(r, throws: false, ext:true)
         getrem(r, throws: throws, ext: ext)
     end
+
+    
     
     #get the nth available rem of a regex-like obj
     #like an array, 0 is the first
@@ -144,8 +150,8 @@ module Remmable
     #takes a symbol 'name' and a regexp-like object 'r'
     #adds a new method called 'name' to the Remmable module that retreives the rem of 'r'
     #will be available to all Remmable objects
-    def remgetter name, r
-        Remmable.define_method(name){getrem(r)}
+    def self.remgetter name, r
+        define_method(name){getrem(r)}
         self
     end
     
@@ -169,20 +175,34 @@ module Remmable
     end
     
     
-    #ignore; work in progress
-    def remset
-        raise "remset isn't ready yet"
-        @remsult = nil
-        @remd = nil
-        rems_history
-        @rems = nil
-        self
-    end
+
+    
     
     #add 'using Remmable' to include Remmable in String for a given scope
     refine String do
         include Remmable
     end
+
+    #TODO comment, rearange methods
+    def remfresh
+        String.new self
+    end
+
+    def remfresh! (save: false)
+        save ? rem_history << clone : (@rem_history = nil)
+        @remsult = nil
+        @rems = nil
+        @rar = nil
+    end
+
+    def remset
+        remfresh(save: true)
+    end
+
+    def rerem(n=-1, ext: false, throws: false)
+        getrem(remmers[n], ext: ext, throws: throws)
+    end
+
     
    # protected
     def reset_rems
