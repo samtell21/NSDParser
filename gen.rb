@@ -1,5 +1,12 @@
-def use 
-    @use ||= File.read('aleadform.txt')
+
+using Remmable
+module Generic
+    
+    class<<self
+
+        def matchitems s
+            s.remset.remall(/^ITEM \#.+?(?=^ITEM \#|\z)/m).rems
+        end
+
+    end
 end
-load 'rem.rb'
-String.include Remmable

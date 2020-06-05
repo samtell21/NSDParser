@@ -189,14 +189,16 @@ module Remmable
     end
 
     def remfresh! (save: false)
-        save ? rem_history << clone : (@rem_history = nil)
+        save ? (rem_history << clone) : (@rem_history = nil)
         @remsult = nil
         @rems = nil
         @rar = nil
+        self
     end
 
     def remset
-        remfresh(save: true)
+        remfresh!(save: true)
+        self
     end
 
     def rerem(n=-1, ext: false, throws: false)
