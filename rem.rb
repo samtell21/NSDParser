@@ -4,7 +4,6 @@
 #parse through a string
 #make matches (rems) of any regexp-like object, and store the matches within the the string instance for later retreival/manipulation, while preserving the string
 #avoid cluttering your local environment with variables to hold all the matches
-#also stored within the instance is a substring of self after removal of all matches up to that point
 
 module Remmable
     #Strings within the scope of the Remmable module should be themselves remmable
@@ -53,7 +52,7 @@ module Remmable
     def remd
         rems[-1]
     end
-
+    
     def remmers
         @remmers ||= []
     end
@@ -82,7 +81,7 @@ module Remmable
         rems << $~
         self
     end
-        
+    
     
     
     alias retrieverem getrem
@@ -92,7 +91,7 @@ module Remmable
     def rem(r, throws: false, ext:true)
         getrem(r, throws: throws, ext: ext)
     end
-
+    
     
     
     #get the nth available rem of a regex-like obj
@@ -139,8 +138,8 @@ module Remmable
         rems << $2
         self
     end
-        
-        
+    
+    
     def clone
         super.new_rar.new_rems
     end
@@ -152,7 +151,6 @@ module Remmable
     #will be available to all Remmable objects
     def self.remgetter name, r
         define_method(name){getrem(r)}
-        self
     end
     
     #retrieves all available rems of a regexp-like object
@@ -175,19 +173,19 @@ module Remmable
     end
     
     
-
+    
     
     
     #add 'using Remmable' to include Remmable in String for a given scope
     refine String do
         include Remmable
     end
-
+    
     #TODO comment, rearange methods
     def remfresh
         String.new self
     end
-
+    
     def remfresh! (save: false)
         save ? (rem_history << clone) : (@rem_history = nil)
         @remsult = nil
@@ -195,18 +193,18 @@ module Remmable
         @rar = nil
         self
     end
-
+    
     def remset
         remfresh!(save: true)
         self
     end
-
+    
     def rerem(n=-1, ext: false, throws: false)
         getrem(remmers[n], ext: ext, throws: throws)
     end
-
     
-   # protected
+    
+    # protected
     def reset_rems
         @rems = []
         self
@@ -219,9 +217,56 @@ module Remmable
         @rems = @rems.clone
         self
     end
-
-
+    
+    
 end
+
+#same as Remmable but will return a new instance for any method call
+#the new instance will hold all the data and the old one will stay fresh
+#remember, '.rem' and '.remall' will extend the returned instance with Remmable, so future on those will not keep them fresh
+#use '.getrem' and '.getallrems' instead 
+module FreshRem
+    using(
+        Module.new do
+            refine String do
+                include FreshRem
+            end
+        end
+    )
+    
+    ::Remmable.instance_methods.each do |m|
+        define_method(m) do |*a, &b|
+            Remmable.instance_method(m).bind(clone).call(*a, &b)
+        end
+    end
+    
+    #since clone is defined in Remmable as an instance variable, I gotta redefine it here to avoid an infinite loop
+    def clone
+        s = String.new self
+        self.instance_variables.each do |v|
+            s.instance_variable_set(v, self.instance_variable_get(v).clone)
+        end
+        s
+    end
+    
+    refine String do
+        using FreshRem
+    end
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

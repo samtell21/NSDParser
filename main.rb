@@ -1,4 +1,4 @@
-load 'new.rb'
+load 'NSD.rb'
 def use
   @use ||= File.read('gbform.txt')
 end
