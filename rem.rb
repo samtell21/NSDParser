@@ -153,6 +153,10 @@ module Remmable
         define_method(name){getrem(r)}
     end
     
+    def self.allremgetter name, r
+        define_method(name){getallrems(r)}
+    end
+    
     #retrieves all available rems of a regexp-like object
     #TODO ext 
     def getallrems r
