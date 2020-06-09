@@ -5,7 +5,24 @@
 #make matches (rems) of any regexp-like object, and store the matches within the the string instance for later retreival/manipulation, while preserving the string
 #avoid cluttering your local environment with variables to hold all the matches
 
+module RemmyMod
+    #add a remgetter
+    #takes a symbol 'name' and a regexp-like object 'r'
+    #adds a new method called 'name' to the Remmable module that retreives the rem of 'r'
+    #will be available to all Remmable objects
+    def remgetter name, r
+        define_method(name){getrem(r)}
+    end
+    
+    def allremgetter name, r
+        define_method(name){getallrems(r)}
+    end
+end
+        
+
 module Remmable
+    extend RemmyMod
+    
     #Strings within the scope of the Remmable module should be themselves remmable
     #especially important if self was made Remmable by 'using' the Remmable module in its source scope, i.e. outside the scope of this module
     #(see at the bottom; there is another refinement of String to include Remmable, this time in the module body proper)
@@ -67,6 +84,9 @@ module Remmable
     # true: raise an exception
     # false: adds nil as the new rem; rar and remsult are unchanged
     #ext: extend self with the Remmable module?
+    
+    #TODO 
+    #rems should only match end of string on the last rar!!
     def getrem(r, throws: false, ext: false)
         
         remextend if ext
@@ -145,20 +165,9 @@ module Remmable
     end
     
     
-    #add a remgetter
-    #takes a symbol 'name' and a regexp-like object 'r'
-    #adds a new method called 'name' to the Remmable module that retreives the rem of 'r'
-    #will be available to all Remmable objects
-    def self.remgetter name, r
-        define_method(name){getrem(r)}
-    end
     
-    def self.allremgetter name, r
-        define_method(name){getallrems(r)}
-    end
     
     #retrieves all available rems of a regexp-like object
-    #TODO ext 
     def getallrems r
         catch :nomatch do
             loop{getrem(r, throws: true)}
@@ -230,6 +239,8 @@ end
 #remember, '.rem' and '.remall' will extend the returned instance with Remmable, so future calls on those will not keep them fresh
 #use '.getrem' and '.getallrems' instead 
 module FreshRem
+    extend RemmyMod
+    
     using(
         Module.new do
             refine String do
@@ -243,6 +254,7 @@ module FreshRem
             Remmable.instance_method(m).bind(clone).call(*a, &b)
         end
     end
+    
     
     #since clone is defined in Remmable as an instance variable, I gotta redefine it here to avoid an infinite loop
     def clone

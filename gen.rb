@@ -11,10 +11,18 @@ module Generic
     @manreg = /Manufacturer: (.*)/
     @modreg = /Model: (.*)/
     
+    @spcreg = /(.+?\s+)+?(?=•|\z)/
+    
     #put regexp variables that need an attr_reader here
     
     @@reg = instance_variables
     
+    @num = :item_number
+    @qty = :quantity
+    @man = :manufacturer
+    @mod = :model
+    @spc = :specifications
+    @lin = :line
     #put non-regex variables that need an attr_reader here
     
     @@ivs = instance_variables
@@ -26,12 +34,30 @@ module Generic
         #attr_readers for instance variables in @@ivs.  block in each takes off the @ from the symbol and sets up the attr_reader
         @@ivs.each{|v| attr_reader Schmutils.noat(v)}
         
-        @@reg.each{|v| Remmable.remgetter(      ('get_'    +Schmutils.noat(v).to_s).to_sym, self.instance_variable_get(v))}
-        @@reg.each{|v| Remmable.allremgetter(   ('getall_' +Schmutils.noat(v).to_s).to_sym, self.instance_variable_get(v))}
+        @@reg.each{|v| FreshRem.remgetter(      ('get_'    +Schmutils.noat(v).to_s).to_sym, Generic.instance_variable_get(v))}
+        @@reg.each{|v| FreshRem.allremgetter(   ('getall_' +Schmutils.noat(v).to_s).to_sym, Generic.instance_variable_get(v))}
         
         def matchitems s
-            s.remset.getallrems(@pagereg).remsult.getallrems(@itemreg).rems
+            s.remset.getall_pagereg.remsult.getall_itemreg.rems.map(&:to_s)
         end
+        
+        def unpack1item i
+            #TODO rems should only match end of a string on the last rar!!
+            x = i.remset.get_numreg.get_qtyreg.get_manreg.get_modreg
+            y= x.remsult.get_spcreg
+            
+            [@num, @qty, @man, @mod, @spc, @lin].zip(x.rems.map{|e| e ? e[1].strip : nil} << y.remd.to_s.strip << y.remsult.strip).to_h
+        end
+        
+        def unpackallitems a
+            a.map{|i| unpack1item(i)}
+        end
+        
+        def mu_items s
+            unpackallitems(matchitems(s))
+        end
+        
+        
 
     end
 end
