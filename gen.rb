@@ -10,14 +10,13 @@ module Generic
     @qtyreg = /Quantity: \w+ \((\d+?)\)/
     @manreg = /Manufacturer: (.*)/
     @modreg = /Model: (.*)/
-    
     @spcreg = /(.+?\s+)+?(?=•|\z)/
-    
     #put regexp variables that need an attr_reader here
     
     @@reg = instance_variables
     
     @num = :item_number
+    @cat = :category
     @qty = :quantity
     @man = :manufacturer
     @mod = :model
@@ -42,11 +41,11 @@ module Generic
         end
         
         def unpack1item i
-            #TODO rems should only match end of a string on the last rar!!
+            #TODO rems should only match end of a string on the last rar, and beginning on the first!!
             x = i.remset.get_numreg.get_qtyreg.get_manreg.get_modreg
             y= x.remsult.get_spcreg
-            
-            [@num, @qty, @man, @mod, @spc, @lin].zip(x.rems.map{|e| e ? e[1].strip : nil} << y.remd.to_s.strip << y.remsult.strip).to_h
+
+            [@num, @cat, @qty, @man, @mod, @spc, @lin].zip(x.rems.map{|e| e ? e[1..2].map(&:strip) : nil}.flatten << y.remd.to_s.strip << y.remsult.strip).to_h
         end
         
         def unpackallitems a
