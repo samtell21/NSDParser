@@ -150,7 +150,6 @@ module NSD
         
         
         #recursively removes all returns from a hash, array, or string, or any combination thereof
-        #TODO this is highly reusable, concider moving into utils
         def removeR s
             case s
             when String

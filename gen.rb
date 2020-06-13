@@ -11,6 +11,8 @@ module Generic
     @manreg = /Manufacturer: (.*)/
     @modreg = /Model: (.*)/
     @spcreg = /(.+?\s+)+?(?=•|\z)/
+    
+    @linreg = /(?<=•).+?(?=•|\z)/m
     #put regexp variables that need an attr_reader here
     
     @@reg = instance_variables
@@ -42,10 +44,13 @@ module Generic
         
         def unpack1item i
             #TODO rems should only match end of a string on the last rar, and beginning on the first!!
+            #maybe option to pull rem from remsult?  how would that go into rar though??
+            #probably should just revert back to pre-rar rem... It was a good idea but i dunno, i think this is a deal breadker..n  
             x = i.remset.get_numreg.get_qtyreg.get_manreg.get_modreg
             y= x.remsult.get_spcreg
-
-            [@num, @cat, @qty, @man, @mod, @spc, @lin].zip(x.rems.map{|e| e ? e[1..2].map(&:strip) : nil}.flatten << y.remd.to_s.strip << y.remsult.strip).to_h
+            lin = y.remsult.strip
+            
+            [@num, @cat, @qty, @man, @mod, @spc, @lin].zip((x.rems << y.remd).map{|e| e ? e[1..2].map(&:strip) : nil}.flatten << lin).to_h
         end
         
         def unpackallitems a
@@ -55,6 +60,19 @@ module Generic
         def mu_items s
             unpackallitems(matchitems(s))
         end
+        
+        def m1l l
+            l.getall_linreg.rems.map(&:to_s).map(&:strip)
+        end
+        
+        def mlines x
+            x.each{|e| e[@lin] = m1l(e[@lin])}
+        end
+        
+        def mul_items s
+            mlines(mu_items(s))
+        end
+        
         
         
 
