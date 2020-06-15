@@ -21,5 +21,3 @@ module Schmutils
 end
 
 
-
-#'asdfasdf'.define_singleton_method_ch_(:hi){puts 'hi'}.hi

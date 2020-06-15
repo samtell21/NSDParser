@@ -11,11 +11,11 @@ module RemmyMod
     #adds a new method called 'name' to the Remmable module that retreives the rem of 'r'
     #will be available to all Remmable objects
     def remgetter name, r
-        define_method(name){getrem(r)}
+        define_method(name){|*a| getrem(r, *a)}
     end
     
     def allremgetter name, r
-        define_method(name){getallrems(r)}
+        define_method(name){|*a| getallrems(r, *a)}
     end
 end
         
@@ -73,11 +73,7 @@ module Remmable
     def remmers
         @remmers ||= []
     end
-    
-    module RemErrors
-        class NoMatchError < RuntimeError
-        end
-    end
+
     
     #retreive a new rem from remsult and add it the rems array
     #throws: determines functionality in the case that there is no match
@@ -87,7 +83,8 @@ module Remmable
     
     #TODO 
     #rems should only match end of string on the last rar!!
-    def getrem(r, throws: false, ext: false)
+    def getrem(r, sult = false, throws: false, ext: false)
+        return getsult(r, throws: throws, ext: ext) if sult
         
         remextend if ext
         
@@ -102,14 +99,27 @@ module Remmable
         self
     end
     
+    def getsult(r, throws: false, ext: false)
+        remextend if ext
+        r = Regexp.new(r)
+        remmers << r
+        if r.match(@remsult)
+            @rar = [$`, $'] #throws out old rar... TODO maybe save it somewhere??
+            @remsult = rar.join
+        end
+        (throw :nomatch if throws) unless $~
+        rems << $~
+        self
+    end
+    
     
     
     alias retrieverem getrem
     alias addrem getrem
     
     #basically an alias of getrem, but extends self with the Remmable module by default
-    def rem(r, throws: false, ext:true)
-        getrem(r, throws: throws, ext: ext)
+    def rem(r, sult = false, throws: false, ext:true)
+        getrem(r, sult, throws: throws, ext: ext)
     end
     
     
@@ -185,15 +195,6 @@ module Remmable
         self
     end
     
-    
-    
-    
-    
-    #add 'using Remmable' to include Remmable in String for a given scope
-    refine String do
-        include Remmable
-    end
-    
     #TODO comment, rearange methods
     def remfresh
         String.new self
@@ -216,8 +217,12 @@ module Remmable
         getrem(remmers[n], ext: ext, throws: throws)
     end
     
+    #add 'using Remmable' to include Remmable in String for a given scope
+    refine String do
+        include Remmable
+    end
     
-    # protected
+    #protected
     def reset_rems
         @rems = []
         self

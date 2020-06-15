@@ -43,14 +43,11 @@ module Generic
         end
         
         def unpack1item i
-            #TODO rems should only match end of a string on the last rar, and beginning on the first!!
-            #maybe option to pull rem from remsult?  how would that go into rar though??
-            #probably should just revert back to pre-rar rem... It was a good idea but i dunno, i think this is a deal breadker..n  
-            x = i.remset.get_numreg.get_qtyreg.get_manreg.get_modreg
-            y= x.remsult.get_spcreg
-            lin = y.remsult.strip
             
-            [@num, @cat, @qty, @man, @mod, @spc, @lin].zip((x.rems << y.remd).map{|e| e ? e[1..2].map(&:strip) : nil}.flatten << lin).to_h
+            x = i.remset.get_numreg.get_qtyreg.get_manreg.get_modreg.get_spcreg(true)
+            lin = x.remsult.strip
+            
+            [@num, @cat, @qty, @man, @mod, @spc, @lin].zip(x.rems.map{|e| e ? e[1..2].map(&:strip) : nil}.flatten << lin).to_h
         end
         
         def unpackallitems a
